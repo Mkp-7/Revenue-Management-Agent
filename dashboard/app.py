@@ -10,7 +10,13 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import asyncio
 from datetime import datetime
+from agents.agent1_scraper import scrape_all_airports
+from agents.agent2_demand import collect_all_demand_signals
+from agents.agent3_recommendations import run_all_airports
+from config.airports import TOP_50_AIRPORTS
+from config.settings import TOP_10_AIRPORTS
 from config.database import get_connection, init_db
 from config.airports import TOP_50_AIRPORTS, COMPETITORS, CAR_CATEGORIES
 from config.settings import TOP_10_AIRPORTS
@@ -77,27 +83,16 @@ with st.sidebar:
 
     st.divider()
     if st.button("▶ Run Pipeline", use_container_width=True):
-    import asyncio
-    from agents.agent1_scraper import scrape_all_airports
-    from agents.agent2_demand import collect_all_demand_signals
-    from agents.agent3_recommendations import run_all_airports
-    from config.airports import TOP_50_AIRPORTS
-    from config.settings import TOP_10_AIRPORTS
-
     airports = [a for a in TOP_50_AIRPORTS if a["code"] in TOP_10_AIRPORTS]
-
     with st.spinner("Step 1/3 — Generating prices..."):
         asyncio.run(scrape_all_airports(airports))
     st.toast("✅ Prices done")
-
     with st.spinner("Step 2/3 — Fetching demand signals..."):
         asyncio.run(collect_all_demand_signals(airports))
     st.toast("✅ Demand signals done")
-
     with st.spinner("Step 3/3 — Generating AI recommendations..."):
         run_all_airports(limit=10)
     st.toast("✅ Recommendations done")
-
     st.success("✅ Pipeline complete! Refreshing...")
     st.cache_data.clear()
     st.rerun()
