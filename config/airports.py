@@ -1,0 +1,66 @@
+"""
+airports.py — Top 50 US airports with verified IATA, ICAO codes and coordinates.
+"""
+
+TOP_50_AIRPORTS = [
+    {"code": "ATL", "icao": "KATL", "city": "Atlanta",         "state": "GA", "lat": 33.6407,  "lon": -84.4277},
+    {"code": "LAX", "icao": "KLAX", "city": "Los Angeles",     "state": "CA", "lat": 33.9425,  "lon": -118.4081},
+    {"code": "ORD", "icao": "KORD", "city": "Chicago",         "state": "IL", "lat": 41.9742,  "lon": -87.9073},
+    {"code": "DFW", "icao": "KDFW", "city": "Dallas",          "state": "TX", "lat": 32.8998,  "lon": -97.0403},
+    {"code": "DEN", "icao": "KDEN", "city": "Denver",          "state": "CO", "lat": 39.8561,  "lon": -104.6737},
+    {"code": "JFK", "icao": "KJFK", "city": "New York",        "state": "NY", "lat": 40.6413,  "lon": -73.7781},
+    {"code": "SFO", "icao": "KSFO", "city": "San Francisco",   "state": "CA", "lat": 37.6213,  "lon": -122.3790},
+    {"code": "SEA", "icao": "KSEA", "city": "Seattle",         "state": "WA", "lat": 47.4502,  "lon": -122.3088},
+    {"code": "LAS", "icao": "KLAS", "city": "Las Vegas",       "state": "NV", "lat": 36.0840,  "lon": -115.1537},
+    {"code": "MCO", "icao": "KMCO", "city": "Orlando",         "state": "FL", "lat": 28.4312,  "lon": -81.3081},
+    {"code": "MIA", "icao": "KMIA", "city": "Miami",           "state": "FL", "lat": 25.7959,  "lon": -80.2870},
+    {"code": "PHX", "icao": "KPHX", "city": "Phoenix",         "state": "AZ", "lat": 33.4373,  "lon": -112.0078},
+    {"code": "EWR", "icao": "KEWR", "city": "Newark",          "state": "NJ", "lat": 40.6895,  "lon": -74.1745},
+    {"code": "BOS", "icao": "KBOS", "city": "Boston",          "state": "MA", "lat": 42.3656,  "lon": -71.0096},
+    {"code": "MSP", "icao": "KMSP", "city": "Minneapolis",     "state": "MN", "lat": 44.8848,  "lon": -93.2223},
+    {"code": "DTW", "icao": "KDTW", "city": "Detroit",         "state": "MI", "lat": 42.2162,  "lon": -83.3554},
+    {"code": "PHL", "icao": "KPHL", "city": "Philadelphia",    "state": "PA", "lat": 39.8721,  "lon": -75.2411},
+    {"code": "LGA", "icao": "KLGA", "city": "LaGuardia",       "state": "NY", "lat": 40.7769,  "lon": -73.8740},
+    {"code": "FLL", "icao": "KFLL", "city": "Fort Lauderdale", "state": "FL", "lat": 26.0726,  "lon": -80.1527},
+    {"code": "IAD", "icao": "KIAD", "city": "Washington DC",   "state": "VA", "lat": 38.9531,  "lon": -77.4565},
+    {"code": "DCA", "icao": "KDCA", "city": "Reagan National", "state": "VA", "lat": 38.8512,  "lon": -77.0402},
+    {"code": "BWI", "icao": "KBWI", "city": "Baltimore",       "state": "MD", "lat": 39.1754,  "lon": -76.6683},
+    {"code": "MDW", "icao": "KMDW", "city": "Chicago Midway",  "state": "IL", "lat": 41.7868,  "lon": -87.7522},
+    {"code": "CLT", "icao": "KCLT", "city": "Charlotte",       "state": "NC", "lat": 35.2140,  "lon": -80.9431},
+    {"code": "SLC", "icao": "KSLC", "city": "Salt Lake City",  "state": "UT", "lat": 40.7899,  "lon": -111.9791},
+    {"code": "SAN", "icao": "KSAN", "city": "San Diego",       "state": "CA", "lat": 32.7338,  "lon": -117.1933},
+    {"code": "IAH", "icao": "KIAH", "city": "Houston",         "state": "TX", "lat": 29.9902,  "lon": -95.3368},
+    {"code": "TPA", "icao": "KTPA", "city": "Tampa",           "state": "FL", "lat": 27.9755,  "lon": -82.5332},
+    {"code": "AUS", "icao": "KAUS", "city": "Austin",          "state": "TX", "lat": 30.1975,  "lon": -97.6664},
+    {"code": "PDX", "icao": "KPDX", "city": "Portland",        "state": "OR", "lat": 45.5898,  "lon": -122.5951},
+    {"code": "BNA", "icao": "KBNA", "city": "Nashville",       "state": "TN", "lat": 36.1263,  "lon": -86.6774},
+    {"code": "RDU", "icao": "KRDU", "city": "Raleigh",         "state": "NC", "lat": 35.8801,  "lon": -78.7880},
+    {"code": "HNL", "icao": "PHNL", "city": "Honolulu",        "state": "HI", "lat": 21.3245,  "lon": -157.9251},
+    {"code": "MSY", "icao": "KMSY", "city": "New Orleans",     "state": "LA", "lat": 29.9934,  "lon": -90.2580},
+    {"code": "CLE", "icao": "KCLE", "city": "Cleveland",       "state": "OH", "lat": 41.4117,  "lon": -81.8498},
+    {"code": "IND", "icao": "KIND", "city": "Indianapolis",    "state": "IN", "lat": 39.7173,  "lon": -86.2944},
+    {"code": "PIT", "icao": "KPIT", "city": "Pittsburgh",      "state": "PA", "lat": 40.4915,  "lon": -80.2329},
+    {"code": "CMH", "icao": "KCMH", "city": "Columbus",        "state": "OH", "lat": 39.9980,  "lon": -82.8919},
+    {"code": "MCI", "icao": "KMCI", "city": "Kansas City",     "state": "MO", "lat": 39.2976,  "lon": -94.7139},
+    {"code": "SMF", "icao": "KSMF", "city": "Sacramento",      "state": "CA", "lat": 38.6954,  "lon": -121.5908},
+    {"code": "SJC", "icao": "KSJC", "city": "San Jose",        "state": "CA", "lat": 37.3626,  "lon": -121.9290},
+    {"code": "OAK", "icao": "KOAK", "city": "Oakland",         "state": "CA", "lat": 37.7213,  "lon": -122.2208},
+    {"code": "STL", "icao": "KSTL", "city": "St. Louis",       "state": "MO", "lat": 38.7487,  "lon": -90.3700},
+    {"code": "MKE", "icao": "KMKE", "city": "Milwaukee",       "state": "WI", "lat": 42.9472,  "lon": -87.8966},
+    {"code": "ABQ", "icao": "KABQ", "city": "Albuquerque",     "state": "NM", "lat": 35.0402,  "lon": -106.6090},
+    {"code": "MEM", "icao": "KMEM", "city": "Memphis",         "state": "TN", "lat": 35.0424,  "lon": -89.9767},
+    {"code": "OMA", "icao": "KOMA", "city": "Omaha",           "state": "NE", "lat": 41.3032,  "lon": -95.8940},
+    {"code": "ANC", "icao": "PANC", "city": "Anchorage",       "state": "AK", "lat": 61.1743,  "lon": -149.9963},
+    {"code": "BDL", "icao": "KBDL", "city": "Hartford",        "state": "CT", "lat": 41.9389,  "lon": -72.6832},
+    {"code": "HOU", "icao": "KHOU", "city": "Houston Hobby",   "state": "TX", "lat": 29.6454,  "lon": -95.2789},
+]
+
+CAR_CATEGORIES = [
+    "economy", "compact", "midsize", "fullsize",
+    "suv", "luxury", "van", "convertible",
+]
+
+COMPETITORS = [
+    "hertz", "enterprise", "avis", "budget",
+    "national", "alamo", "dollar", "thrifty",
+]
