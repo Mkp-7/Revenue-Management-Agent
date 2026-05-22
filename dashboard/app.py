@@ -88,12 +88,15 @@ with st.sidebar:
     with st.spinner("Step 1/3 — Generating prices..."):
         asyncio.run(scrape_all_airports(airports))
     st.toast("✅ Prices done")
+    
     with st.spinner("Step 2/3 — Fetching demand signals..."):
         asyncio.run(collect_all_demand_signals(airports))
     st.toast("✅ Demand signals done")
+    
     with st.spinner("Step 3/3 — Generating AI recommendations..."):
         run_all_airports(limit=10)
     st.toast("✅ Recommendations done")
+    
     st.success("✅ Pipeline complete! Refreshing...")
     st.cache_data.clear()
     st.rerun()
