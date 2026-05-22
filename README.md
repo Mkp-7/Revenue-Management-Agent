@@ -5,7 +5,6 @@
 [![GitHub Actions](https://img.shields.io/badge/Pipeline-GitHub%20Actions-2088FF?logo=github-actions)](https://github.com/Mkp-7/Revenue-Management-Agent/actions)
 [![Groq AI](https://img.shields.io/badge/AI-Groq%20llama--3.3--70b-orange)](https://groq.com)
 [![Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B)](https://streamlit.io)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
@@ -380,9 +379,9 @@ Add these secrets under **Settings → Secrets → Actions**:
 
 ---
 
-## 💼 Built For
+## 💼 Use Case
 
-This project was built as a portfolio piece targeting the **Revenue Management Analyst** role at **Avis Budget Group**. It demonstrates:
+Built to demonstrate how autonomous AI agents can replace manual revenue management workflows in the car rental industry. It demonstrates:
 
 - Autonomous multi-agent AI architecture
 - Real-time data pipeline design
@@ -391,23 +390,3 @@ This project was built as a portfolio piece targeting the **Revenue Management A
 - Production-ready code quality
 
 > *"The same workflow analysts do manually in 3 hours, this does in 15 minutes."*
-
----
-
-## 📄 License
-
-MIT License — free to use and modify.
-
-- Autonomous multi-agent AI architecture
-- Real-time data pipeline design
-- Revenue management domain knowledge
-- Full-stack development (Python, SQLite, Streamlit, GitHub Actions)
-- Production-ready code quality
-
-> *"The same workflow your analysts do manually in 3 hours, this does in 15 minutes."*
-
----
-
-## 📄 License
-
-MIT License — free to use and modify.
