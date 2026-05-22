@@ -83,6 +83,7 @@ with st.sidebar:
 
     st.divider()
     if st.button("▶ Run Pipeline", use_container_width=True):
+        
     airports = [a for a in TOP_50_AIRPORTS if a["code"] in TOP_10_AIRPORTS]
     with st.spinner("Step 1/3 — Generating prices..."):
         asyncio.run(scrape_all_airports(airports))
