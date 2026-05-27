@@ -10,13 +10,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import asyncio
 from datetime import datetime
-from agents.agent1_scraper import scrape_all_airports
-from agents.agent2_demand import collect_all_demand_signals
-from agents.agent3_recommendations import run_all_airports
-from config.airports import TOP_50_AIRPORTS
-from config.settings import TOP_10_AIRPORTS
 from config.database import get_connection, init_db
 from config.airports import TOP_50_AIRPORTS, COMPETITORS, CAR_CATEGORIES
 from config.settings import TOP_10_AIRPORTS
@@ -82,25 +76,11 @@ with st.sidebar:
     selected_competitors = st.multiselect("Competitors", COMPETITORS, default=COMPETITORS)
 
     st.divider()
-if st.button("▶ Run Pipeline", use_container_width=True):
+    if st.button("▶ Run Pipeline", use_container_width=True):
+        import subprocess
+        subprocess.Popen([sys.executable, "orchestrator.py", "--once"])
+        st.success("Pipeline started!")
 
-    airports = [a for a in TOP_50_AIRPORTS if a["code"] in TOP_10_AIRPORTS]
-
-    with st.spinner("Step 1/3 — Generating prices..."):
-        asyncio.run(scrape_all_airports(airports))
-    st.toast("✅ Prices done")
-
-    with st.spinner("Step 2/3 — Fetching demand signals..."):
-        asyncio.run(collect_all_demand_signals(airports))
-    st.toast("✅ Demand signals done")
-
-    with st.spinner("Step 3/3 — AI recommendations..."):
-        run_all_airports(limit=10)
-    st.toast("✅ Recommendations done")
-
-    st.success("✅ Pipeline complete!")
-    st.cache_data.clear()
-    st.rerun()
     if st.button("↻ Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
@@ -132,8 +112,9 @@ city         = airport_info.get("city", selected_airport)
 # ── Hero ───────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="hero">
+  <div class="hero-badge">⚡ Live Intelligence</div>
   <div class="hero-title">Revenue Intelligence Hub</div>
-  <div class="hero-sub">{selected_airport} · {city} &nbsp;·&nbsp; 10 US Airports &nbsp;·&nbsp; 8 Competitors &nbsp;·&nbsp; AI-Powered (Groq)</div>
+  <div class="hero-sub">{selected_airport} · {city} &nbsp;·&nbsp; 10 US Airports &nbsp;·&nbsp; 8 Competitors &nbsp;·&nbsp; AI by Groq</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -202,7 +183,7 @@ with tab1:
 # ── Tab 2: Recommendations ─────────────────────────────────────────
 with tab2:
     st.markdown("### 🤖 AI Pricing Recommendations")
-    st.caption(f"Groq · llama-3.3-70b-versatile · {selected_airport} · sorted by urgency")
+    st.caption(f"Gemini 2.0 Flash → Groq fallback · {selected_airport} · sorted by urgency")
 
     if not recs_data:
         st.markdown('<div class="empty-state"><div style="font-size:3rem">🤖</div><b>No recommendations yet</b><br>Run the pipeline to generate AI suggestions</div>', unsafe_allow_html=True)
