@@ -1,8 +1,7 @@
 """
 agent2_demand.py — Demand Signal Monitor
-=========================================
-Real data from 3 free APIs:
-  1. OpenSky Network — real ADS-B flight data (no key needed)
+Real data from 3 free sources:
+  1. OpenSky Network (OAuth2) — real ADS-B flight data
   2. Ticketmaster Discovery API — real events near airports
   3. Open-Meteo — real 14-day weather forecast (no key needed)
 """
@@ -10,6 +9,7 @@ Real data from 3 free APIs:
 import os
 import asyncio
 import aiohttp
+import requests
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from loguru import logger
@@ -22,10 +22,9 @@ from config.database import get_connection, init_db
 
 load_dotenv()
 
-AVIATIONSTACK_KEY = os.getenv("AVIATIONSTACK_API_KEY", "")
-TICKETMASTER_KEY = os.getenv("TICKETMASTER_API_KEY", "")
-OPENSKY_USER     = os.getenv("OPENSKY_USERNAME", "")
-OPENSKY_PASS     = os.getenv("OPENSKY_PASSWORD", "")
+TICKETMASTER_KEY  = os.getenv("TICKETMASTER_API_KEY", "")
+OPENSKY_CLIENT_ID = os.getenv("OPENSKY_USERNAME", "")
+OPENSKY_SECRET    = os.getenv("OPENSKY_PASSWORD", "")
 
 SEVERE_CODES = {65, 67, 75, 77, 82, 85, 86, 95, 96, 99}
 WMO_LABELS   = {
@@ -35,73 +34,108 @@ WMO_LABELS   = {
     95: "Thunderstorm", 99: "Severe Thunderstorm",
 }
 
+# Cache OAuth2 token to avoid requesting new one for each airport
+_opensky_token = None
+_token_expiry  = 0
+
+
+def get_opensky_token() -> str | None:
+    """Get OAuth2 bearer token from OpenSky. Cached until expiry."""
+    global _opensky_token, _token_expiry
+
+    if not OPENSKY_CLIENT_ID or not OPENSKY_SECRET:
+        return None
+
+    # Return cached token if still valid
+    if _opensky_token and datetime.utcnow().timestamp() < _token_expiry - 60:
+        return _opensky_token
+
+    try:
+        resp = requests.post(
+            "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token",
+            data={
+                "grant_type":    "client_credentials",
+                "client_id":     OPENSKY_CLIENT_ID,
+                "client_secret": OPENSKY_SECRET,
+            },
+            timeout=15,
+        )
+        if resp.status_code == 200:
+            data           = resp.json()
+            _opensky_token = data["access_token"]
+            _token_expiry  = datetime.utcnow().timestamp() + data.get("expires_in", 1800)
+            logger.debug("OpenSky OAuth2 token obtained ✅")
+            return _opensky_token
+        else:
+            logger.error("OpenSky token error: HTTP {} — {}", resp.status_code, resp.text[:100])
+            return None
+    except Exception as e:
+        logger.error("OpenSky token request failed: {}", str(e)[:100])
+        return None
+
 
 # ── OpenSky Flights ────────────────────────────────────────────────
 
 async def fetch_flight_demand(session, airport):
-    iata = airport["code"]
-    
-    # Try AviationStack first (100 calls/month — used once per day max)
-    if AVIATIONSTACK_KEY:
-        try:
-            async with session.get(
-                "http://api.aviationstack.com/v1/flights",
-                params={
-                    "access_key": AVIATIONSTACK_KEY,
-                    "arr_iata":   iata,
-                    "flight_status": "scheduled",
-                    "limit":      100,
-                },
-                timeout=aiohttp.ClientTimeout(total=20),
-            ) as resp:
-                if resp.status == 200:
-                    data    = await resp.json()
-                    flights = data.get("data", [])
-                    by_date = {}
-                    for f in flights:
-                        dep = f.get("departure", {}).get("scheduled", "")
-                        if dep:
-                            date = dep[:10]
-                            by_date.setdefault(date, {"arrivals":0,"departures":0})
-                            by_date[date]["arrivals"] += 1
-                    logger.debug("AviationStack ✅ {}: {} flights", iata, len(flights))
-                    return {"airport_code": iata, "by_date": by_date, "source": "aviationstack"}
-                else:
-                    logger.warning("AviationStack {} HTTP {}", iata, resp.status)
-        except Exception as e:
-            logger.warning("AviationStack {}: {}", iata, str(e)[:60])
+    iata  = airport["code"]
+    icao  = airport["icao"]
+    end   = int(datetime.utcnow().timestamp())
+    begin = end - (12 * 3600)
 
-    # Fallback: OpenSky (no key needed)
-    icao = airport["icao"]
-    end_time = int(datetime.utcnow().timestamp())
-    begin    = end_time - (12 * 3600)
-    auth     = aiohttp.BasicAuth(OPENSKY_USER, OPENSKY_PASS) if OPENSKY_USER else None
+    token = get_opensky_token()
+
+    if not token:
+        logger.warning("No OpenSky token — skipping flights for {}", iata)
+        return {"airport_code": iata, "by_date": {}, "source": "no_token"}
 
     try:
         async with session.get(
             "https://opensky-network.org/api/flights/arrival",
-            params={"airport": icao, "begin": begin, "end": end_time},
-            auth=auth,
+            params={"airport": icao, "begin": begin, "end": end},
+            headers={"Authorization": f"Bearer {token}"},
             timeout=aiohttp.ClientTimeout(total=30),
         ) as resp:
             if resp.status == 200:
                 flights   = await resp.json()
                 count     = len(flights) if isinstance(flights, list) else 0
-                daily_est = count * 2
-                by_date   = {}
+                daily_est = count * 2  # scale 12h → 24h
+
+                by_date = {}
                 for i in range(14):
                     date = (datetime.utcnow() + timedelta(days=i)).strftime("%Y-%m-%d")
                     dow  = (datetime.utcnow() + timedelta(days=i)).weekday()
                     proj = int(daily_est * (1.15 if dow >= 4 else 1.0))
-                    by_date[date] = {"arrivals": proj//2, "departures": proj//2}
-                logger.debug("OpenSky ✅ {}: {} arrivals/12h", iata, count)
+                    by_date[date] = {"arrivals": proj // 2, "departures": proj // 2}
+
+                logger.debug("OpenSky ✅ {} ({}): {} arrivals/12h → ~{}/day",
+                             iata, icao, count, daily_est)
                 return {"airport_code": iata, "by_date": by_date, "source": "opensky"}
+
+            elif resp.status == 401:
+                logger.warning("OpenSky 401 for {} — token expired, will refresh next run", iata)
+                global _opensky_token
+                _opensky_token = None  # force refresh next call
+                return {"airport_code": iata, "by_date": {}, "source": "auth_error"}
+
+            elif resp.status == 404:
+                logger.warning("OpenSky: {} ({}) not found", iata, icao)
+                return {"airport_code": iata, "by_date": {}, "source": "not_found"}
+
+            elif resp.status == 429:
+                logger.warning("OpenSky rate limit for {} — skipping", iata)
+                return {"airport_code": iata, "by_date": {}, "source": "rate_limited"}
+
             else:
                 logger.warning("OpenSky {} HTTP {}", iata, resp.status)
                 return {"airport_code": iata, "by_date": {}, "source": f"error_{resp.status}"}
+
+    except asyncio.TimeoutError:
+        logger.warning("OpenSky timeout for {}", iata)
+        return {"airport_code": iata, "by_date": {}, "source": "timeout"}
     except Exception as e:
-        logger.warning("OpenSky {}: {}", iata, str(e)[:60])
-        return {"airport_code": iata, "by_date": {}, "source": "error"}
+        logger.error("OpenSky error {}: {}", iata, str(e)[:80])
+        return {"airport_code": iata, "by_date": {}, "source": "exception"}
+
 
 def store_flight_demand(airport_code, demand):
     if not demand["by_date"]:
@@ -125,6 +159,7 @@ def store_flight_demand(airport_code, demand):
 
 async def fetch_events(session, airport):
     if not TICKETMASTER_KEY:
+        logger.warning("No TICKETMASTER_API_KEY — skipping events for {}", airport["code"])
         return []
     try:
         async with session.get(
@@ -159,7 +194,9 @@ async def fetch_events(session, airport):
                         "distance_miles":      None,
                     })
                 return results
-            return []
+            else:
+                logger.error("Ticketmaster {} HTTP {}", airport["code"], resp.status)
+                return []
     except Exception as e:
         logger.error("Ticketmaster {}: {}", airport["code"], str(e)[:60])
         return []
@@ -178,7 +215,8 @@ def store_events(events):
                  venue, expected_attendance, distance_miles)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (now, ev["airport_code"], ev["event_name"], ev["event_date"],
-              ev["event_type"], ev["venue"], ev["expected_attendance"], ev["distance_miles"]))
+              ev["event_type"], ev["venue"],
+              ev["expected_attendance"], ev["distance_miles"]))
     conn.commit()
     conn.close()
 
@@ -220,7 +258,9 @@ async def fetch_weather(session, airport):
                         "is_severe":        1 if code in SEVERE_CODES or precip > 30 else 0,
                     })
                 return results
-            return []
+            else:
+                logger.error("Open-Meteo {} HTTP {}", airport["code"], resp.status)
+                return []
     except Exception as e:
         logger.error("Open-Meteo {}: {}", airport["code"], str(e)[:60])
         return []
@@ -252,8 +292,17 @@ async def collect_all_demand_signals(target_airports=None):
     init_db()
 
     logger.info("📡 Demand signals — {} airports", len(airports))
-    logger.info("   ✈️  OpenSky | 🎟️  Ticketmaster ({}) | 🌧️  Open-Meteo",
-                "✅" if TICKETMASTER_KEY else "❌ no key")
+    logger.info("   ✈️  OpenSky OAuth2 ({})", "✅ credentials set" if OPENSKY_CLIENT_ID else "❌ no credentials")
+    logger.info("   🎟️  Ticketmaster ({})", "✅ key set" if TICKETMASTER_KEY else "❌ no key")
+    logger.info("   🌧️  Open-Meteo ✅ always free")
+
+    # Pre-fetch OAuth2 token once for all airports
+    if OPENSKY_CLIENT_ID:
+        token = get_opensky_token()
+        if token:
+            logger.info("   ✅ OpenSky OAuth2 token obtained")
+        else:
+            logger.warning("   ❌ OpenSky token failed — flights will be skipped")
 
     async with aiohttp.ClientSession() as session:
         for i, airport in enumerate(airports):
@@ -270,13 +319,15 @@ async def collect_all_demand_signals(target_airports=None):
             store_weather(weather)
 
             severe = sum(1 for w in weather if w.get("is_severe"))
-            logger.success("✅ {} — flights:{} [{}] events:{} weather:{} ({}⚡)",
-                           airport["code"],
-                           len(flights.get("by_date", {})),
-                           flights.get("source", "none"),
-                           len(events), len(weather), severe)
+            logger.success(
+                "✅ {} — flights:{} [{}] events:{} weather:{} ({}⚡)",
+                airport["code"],
+                len(flights.get("by_date", {})),
+                flights.get("source", "none"),
+                len(events), len(weather), severe
+            )
 
-            await asyncio.sleep(10)  # respect OpenSky rate limits
+            await asyncio.sleep(5)  # polite delay
 
     logger.success("🏁 Demand signals complete.")
 
