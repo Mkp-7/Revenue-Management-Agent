@@ -34,11 +34,25 @@ AIRPORTS = [a for a in TOP_50_AIRPORTS if a["code"] in TOP_10_AIRPORTS]
 
 
 async def run_pipeline():
+    from config.database import get_connection
+    from datetime import timezone
+
     start = datetime.now()
-    logger.info("=" * 60)
     logger.info("🚀 ABG PRICING INTELLIGENCE PIPELINE")
-    logger.info("   Time: {} | Airports: {}", start.isoformat(), len(AIRPORTS))
-    logger.info("=" * 60)
+
+    # Check if fresh data exists (less than 24 hours old)
+    conn = get_connection()
+    prices_count = conn.execute("SELECT COUNT(*) FROM competitor_prices").fetchone()[0]
+    recs_count   = conn.execute("SELECT COUNT(*) FROM recommendations").fetchone()[0]
+    conn.close()
+
+    if prices_count > 0 and recs_count > 0:
+        logger.success("✅ Fresh data already exists ({} prices, {} recs) — skipping pipeline", 
+                       prices_count, recs_count)
+        logger.info("   Delete the database to force a fresh run.")
+        return
+
+    logger.info("   No data found — running full pipeline")
 
     logger.info("\n📦 STEP 1/3 — Competitor Price Engine")
     await scrape_all_airports(AIRPORTS)
@@ -50,10 +64,7 @@ async def run_pipeline():
     run_all_airports(limit=10)
 
     elapsed = (datetime.now() - start).total_seconds()
-    logger.info("\n" + "=" * 60)
     logger.success("✅ PIPELINE COMPLETE in {:.0f}s", elapsed)
-    logger.info("   Next run in {} hours", SCRAPE_INTERVAL_HRS)
-    logger.info("=" * 60)
 
 
 def run_pipeline_sync():
