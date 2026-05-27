@@ -82,26 +82,25 @@ with st.sidebar:
     selected_competitors = st.multiselect("Competitors", COMPETITORS, default=COMPETITORS)
 
     st.divider()
-    if st.button("▶ Run Pipeline", use_container_width=True):
-        
+    if st.button("▶ Run Pipeline", use_container_width=True)
+
     airports = [a for a in TOP_50_AIRPORTS if a["code"] in TOP_10_AIRPORTS]
-    
+
     with st.spinner("Step 1/3 — Generating prices..."):
         asyncio.run(scrape_all_airports(airports))
     st.toast("✅ Prices done")
-    
+
     with st.spinner("Step 2/3 — Fetching demand signals..."):
         asyncio.run(collect_all_demand_signals(airports))
     st.toast("✅ Demand signals done")
-    
-    with st.spinner("Step 3/3 — Generating AI recommendations..."):
+
+    with st.spinner("Step 3/3 — AI recommendations..."):
         run_all_airports(limit=10)
     st.toast("✅ Recommendations done")
-    
-    st.success("✅ Pipeline complete! Refreshing...")
+
+    st.success("✅ Pipeline complete!")
     st.cache_data.clear()
     st.rerun()
-
     if st.button("↻ Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
