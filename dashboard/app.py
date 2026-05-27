@@ -328,7 +328,7 @@ with tab1:
         stats.index   = [i.upper() for i in stats.index]
         st.dataframe(
             stats.style
-                .format("${:.2f}", subset=["Min $/day","Max $/day","Avg $/day"])
+                .format("${:.2f}", subset=["Min $/day","Max $/day","Avg $/day"]),
             use_container_width=True,
         )
 
