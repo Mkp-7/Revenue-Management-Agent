@@ -197,9 +197,9 @@ with tab2:
             delta   = rec.get("price_delta",0) or 0
             emojis  = {"critical":"🔴","high":"🟠","medium":"🟡","low":"🟢"}
 
-            if delta > 0:   delta_html = f'<span style="color:#10b981;font-weight:700">&#8593; +${delta:.0f}/day</span>'
-            elif delta < 0: delta_html = f'<span style="color:#ef4444;font-weight:700">&#8595; &minus;${abs(delta):.0f}/day</span>'
-            else:           delta_html = '<span style="color:#94a3b8;font-weight:700">&#8594; Hold</span>'
+            if delta > 0:   delta_html = f'<span style="color:#10b981;font-weight:700">🟢 +${delta:.0f}/day</span>'
+            elif delta < 0: delta_html = f'<span style="color:#ef4444;font-weight:700">🔴 -${abs(delta):.0f}/day</span>'
+            else:           delta_html = '<span style="color:#94a3b8;font-weight:700">⏸ Hold</span>'
 
             st.markdown(f"""
 <div class="rec-card rec-{urgency}">
