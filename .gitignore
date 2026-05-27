@@ -1,7 +1,5 @@
 .env
 *.env
-data/pricing.db
-data/*.db
 logs/
 *.log
 __pycache__/
