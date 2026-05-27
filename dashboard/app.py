@@ -329,7 +329,6 @@ with tab1:
         st.dataframe(
             stats.style
                 .format("${:.2f}", subset=["Min $/day","Max $/day","Avg $/day"])
-                .background_gradient(cmap="Blues", subset=["Avg $/day"]),
             use_container_width=True,
         )
 
