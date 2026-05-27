@@ -22,7 +22,6 @@ from agents.agent2_demand import get_demand_summary
 
 load_dotenv()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GROQ_API_KEY   = os.getenv("GROQ_API_KEY", "")
 
 SYSTEM_PROMPT = """You are a senior revenue analyst for a major US car rental company.
@@ -105,39 +104,6 @@ FLIGHT DEMAND:
 
 Generate exactly 3 pricing recommendations for this airport.
 Each must target a different car category and reference specific data points above."""
-
-
-def call_gemini(prompt: str) -> list[dict]:
-    """Call Gemini 2.0 Flash for recommendations."""
-    if not GEMINI_API_KEY:
-        return []
-
-    try:
-        from google import genai
-        client   = genai.Client(api_key=GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=f"{SYSTEM_PROMPT}\n\n{prompt}",
-        )
-        raw = response.text.strip()
-        raw = re.sub(r"```json\s*", "", raw)
-        raw = re.sub(r"```\s*",     "", raw)
-        raw = raw.strip()
-
-        parsed = json.loads(raw)
-        return parsed if isinstance(parsed, list) else []
-
-    except json.JSONDecodeError:
-        logger.warning("Gemini returned non-JSON — retrying with Groq")
-        return []
-    except Exception as e:
-        if "429" in str(e) or "quota" in str(e).lower():
-            logger.warning("Gemini rate limit — waiting 30s")
-            time.sleep(30)
-            return call_gemini(prompt)
-        logger.error("Gemini error: {}", str(e)[:150])
-        return []
-
 
 def call_groq(prompt: str) -> list[dict]:
     """Fallback to Groq if Gemini fails."""
@@ -304,17 +270,6 @@ def generate_for_airport(airport_code: str) -> list[dict]:
 
     prompt = build_prompt(airport_code)
 
-    # Try Gemini first
-    recs = call_gemini(prompt)
-    if recs:
-        recs = validate_recs(recs)
-        if recs:
-            logger.success("✅ {} → {} recs from Gemini", airport_code, len(recs))
-            store_recommendations(airport_code, recs)
-            return recs
-
-    # Fallback to Groq
-    logger.warning("Gemini failed for {} — trying Groq", airport_code)
     recs = call_groq(prompt)
     if recs:
         recs = validate_recs(recs)
@@ -377,4 +332,4 @@ if __name__ == "__main__":
             print(f"  {r['recommendation']}")
             print(f"  💡 {r['reasoning']}")
     else:
-        run_all_airports(args.limit)
+        run_all_airports(args.limit)    
