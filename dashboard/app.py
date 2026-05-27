@@ -183,7 +183,7 @@ with tab1:
 # ── Tab 2: Recommendations ─────────────────────────────────────────
 with tab2:
     st.markdown("### 🤖 AI Pricing Recommendations")
-    st.caption(f"Gemini 2.0 Flash → Groq fallback · {selected_airport} · sorted by urgency")
+    st.caption(f"Groq · llama-3.1-8b-instant · {selected_airport} · sorted by urgency")
 
     if not recs_data:
         st.markdown('<div class="empty-state"><div style="font-size:3rem">🤖</div><b>No recommendations yet</b><br>Run the pipeline to generate AI suggestions</div>', unsafe_allow_html=True)
