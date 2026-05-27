@@ -82,7 +82,7 @@ with st.sidebar:
     selected_competitors = st.multiselect("Competitors", COMPETITORS, default=COMPETITORS)
 
     st.divider()
-    if st.button("▶ Run Pipeline", use_container_width=True)
+    if st.button("▶ Run Pipeline", use_container_width=True):
 
     airports = [a for a in TOP_50_AIRPORTS if a["code"] in TOP_10_AIRPORTS]
 
