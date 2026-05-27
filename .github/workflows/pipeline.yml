@@ -6,6 +6,8 @@ on:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -20,13 +22,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Restore database from cache
-        uses: actions/cache@v4
-        with:
-          path: data/pricing.db
-          key: pricing-db-${{ github.run_number }}
-          restore-keys: pricing-db-
-
       - name: Create folders
         run: mkdir -p data logs
 
@@ -34,29 +29,14 @@ jobs:
         env:
           GROQ_API_KEY:         ${{ secrets.GROQ_API_KEY }}
           TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
-          GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
           OPENSKY_USERNAME:     ${{ secrets.OPENSKY_USERNAME }}
           OPENSKY_PASSWORD:     ${{ secrets.OPENSKY_PASSWORD }}
         run: python orchestrator.py --once
 
-      - name: Commit database to repo
+      - name: Save database to repo
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
           git add data/pricing.db
-          git commit -m "Update pricing database" || exit 0
+          git commit -m "Update pricing database [skip ci]" || echo "No changes to commit"
           git push
-
-      - name: Upload database
-        uses: actions/upload-artifact@v4
-        with:
-          name: pricing-db-${{ github.run_number }}
-          path: data/pricing.db
-          retention-days: 7
-
-      - name: Upload logs
-        uses: actions/upload-artifact@v4
-        with:
-          name: pipeline-logs-${{ github.run_number }}
-          path: logs/
-          retention-days: 3
