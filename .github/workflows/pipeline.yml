@@ -36,6 +36,7 @@ jobs:
         env:
           GROQ_API_KEY:         ${{ secrets.GROQ_API_KEY }}
           TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+          GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
           OPENSKY_USERNAME:     ${{ secrets.OPENSKY_USERNAME }}
           OPENSKY_PASSWORD:     ${{ secrets.OPENSKY_PASSWORD }}
         run: python orchestrator.py --once
